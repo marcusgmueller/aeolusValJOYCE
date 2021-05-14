@@ -1,0 +1,3 @@
+[submodule "radarlidar_analysis"]
+	path = radarlidar_analysis
+	url = git@github.com:marcusgmueller/radarlidar_analysis.git
