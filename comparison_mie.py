@@ -18,11 +18,14 @@ from shapely.geometry import LineString
 import sys, os
 
 
-from .radarlidar_analysis.RadarLidarWindSpeed import RadarLidarWindSpeed
+from radarlidar_analysis.RadarLidarWindSpeed import RadarLidarWindSpeed
 from datetime import datetime, timedelta
 import tarfile
 import math
 
+
+
+path = '/work/marcus_mueller/aeolus/3082/'
 
 def calculate_nearest(row, destination, val, col='geometry'):
     # 1 - create unary union    
@@ -39,42 +42,45 @@ def create_gdf(df, x='lat', y='lon'):
     return gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df[y], df[x]), crs={'init':'EPSG:4326'})
 def readFile(list):
     for filename in list:
+
         filename = filename[:-4]
         print(filename)
         tf = tarfile.open(path+filename+".TGZ", "r:gz")
-        tf.extractall("/work/marcus_mueller/aeolus/3082/")
+        tf.extractall(path)
         tf.close()
         sys.path.append(path)
 
-        #e/mmueller/hiwi/aeolusE_OPER_ALD_U_N_2B_20190630T171935_20190630T194247_0003.DBL"
-
-
-
         try:
             product = coda.open(path+filename+".DBL")
-            latitude = coda.fetch(product, 'rayleigh_geolocation', -1, 'windresult_geolocation/latitude_cog')
+            latitude = coda.fetch(product, 'mie_geolocation', -1, 'windresult_geolocation/latitude_cog')
 
-            longitude = coda.fetch(product, 'rayleigh_geolocation', -1, 'windresult_geolocation/longitude_cog')
+            longitude = coda.fetch(product, 'mie_geolocation', -1, 'windresult_geolocation/longitude_cog')
 
-            altitude = coda.fetch(product, 'rayleigh_geolocation', -1, 'windresult_geolocation/altitude_vcog')
-
-
+            altitude = coda.fetch(product, 'mie_geolocation', -1, 'windresult_geolocation/altitude_vcog')
 
 
-            mie_wind_velocity = coda.fetch(product, 'rayleigh_hloswind', -1, 'windresult/rayleigh_wind_velocity')
+
+
+            mie_wind_velocity = coda.fetch(product, 'mie_hloswind', -1, 'windresult/mie_wind_velocity')
+
+            mie_wind_validity = coda.fetch(product, 'mie_hloswind', -1, 'windresult/validity_flag')
 
             mie_wind_velocity = mie_wind_velocity*0.01
             #mie_wind_result_wind_velocity
 
-            result_id = coda.fetch(product, 'rayleigh_profile', -1, 'l2b_wind_profiles/wind_result_id_number')
-            time = coda.fetch(product, 'rayleigh_profile', -1, 'Start_of_Obs_DateTime')
-            orbit = coda.fetch(product, 'rayleigh_geolocation', -1, 'windresult_geolocation/altitude_vcog')
-            azimuth = coda.fetch(product, 'rayleigh_geolocation', -1, 'windresult_geolocation/los_azimuth')
+            result_id = coda.fetch(product, 'mie_profile', -1, 'l2b_wind_profiles/wind_result_id_number')
+            time = coda.fetch(product, 'mie_profile', -1, 'Start_of_Obs_DateTime')
+            orbit = coda.fetch(product, 'mie_geolocation', -1, 'windresult_geolocation/altitude_vcog')
+            azimuth = coda.fetch(product, 'mie_geolocation', -1, 'windresult_geolocation/los_azimuth')
+
 
             result_id = vstack(result_id)
 
             wind_velocity = zeros(result_id.shape)
             wind_velocity[result_id != 0] = mie_wind_velocity[result_id[result_id != 0] - 1]
+
+            wind_validity = zeros(result_id.shape)
+            wind_validity[result_id != 0] = mie_wind_validity[result_id[result_id != 0] - 1]
 
             lats = zeros(result_id.shape)
             lats[result_id != 0] = latitude[result_id[result_id != 0] - 1]
@@ -90,8 +96,6 @@ def readFile(list):
 
 
 
-            os.remove(path+filename+".DBL")
-            os.remove(path+filename+".HDR")
             df = pd.DataFrame([],  columns =['column', 'alt', 'lat', 'lon', 'speed','azimuth'])
             for i in range(wind_velocity.shape[0]):
                 for j in range(24):
@@ -102,7 +106,8 @@ def readFile(list):
                         'lat': [lats[i,j]],
                         'lon': [lons[i,j]],
                         'speed': [wind_velocity[i,j]],   
-                        'azimuth': azimuth_hlos[i,j]      
+                        'azimuth': azimuth_hlos[i,j],
+                        'validity':   [wind_validity[i,j]]    
                     })
                     df = df.append(newDF)
 
@@ -192,6 +197,7 @@ def readFile(list):
             # Delete these row indexes from dataFrame
             #resultGDF.drop(indexNames , inplace=True)
             resultGDF = resultGDF[resultGDF.lat != 0.0]
+            resultGDF = resultGDF[resultGDF.validity != 0.0]
 
             fig = plt.figure(figsize=(20,10))
             plt.title("AEOLUS: Rayleigh Wind-Speed "+(x+delta).strftime("%Y-%m-%d"))
@@ -202,16 +208,23 @@ def readFile(list):
             ax.set_xlabel("horizontal windspeed [m/s]")
             ax.set_ylabel("height AGL [m]")
             ax.legend()
-            plt.savefig('/work/marcus_mueller/aeolus/3082/plots/'+(x+delta).strftime("%Y-%m-%d")+'.png',dpi=150)
+            plt.savefig(path+'plots/'+(x+delta).strftime("%Y-%m-%d")+'_mie.png',dpi=150)
             plt.show()
-        except:
+
+        except Exception as e:
             print("error")
+            print(e)
+
+        #remove file
+        os.remove(path+filename+".DBL")
+        os.remove(path+filename+".HDR")
+
 
 
 
 
 # get all files
-path = '/work/marcus_mueller/aeolus/3082/'
+
 fileList =  os.listdir(path)
 tasks = []
 tasks.append(fileList[::4])
@@ -220,11 +233,15 @@ tasks.append(fileList[2::4])
 tasks.append(fileList[3::4])
 
 
-#start multiprocessing
+
+
+# #start multiprocessing
+
 queue = Queue()
 processes = [Process(target=readFile, args=([list])) for list in tasks]
 for p in processes:
-    p.start()
+   p.start()
 
 for p in processes:
-    p.join()
+   p.join()
+#readFile(['AE_OPER_ALD_U_N_2B_20210502T171744_20210502T194056_0001.TGZ'])
