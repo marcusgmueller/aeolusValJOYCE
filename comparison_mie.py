@@ -71,8 +71,7 @@ def readFile(list):
             result_id = coda.fetch(product, 'mie_profile', -1, 'l2b_wind_profiles/wind_result_id_number')
             time = coda.fetch(product, 'mie_profile', -1, 'Start_of_Obs_DateTime')
             orbit = coda.fetch(product, 'mie_geolocation', -1, 'windresult_geolocation/altitude_vcog')
-            azimuth = coda.fetch(product, 'mie_geolocation', -1, 'windresult_geolocation/los_azimuth')
-
+            
 
             result_id = vstack(result_id)
 
@@ -91,10 +90,15 @@ def readFile(list):
             alt = zeros(result_id.shape)
             alt[result_id != 0] = altitude[result_id[result_id != 0] - 1]
 
-            azimuth_hlos = zeros(result_id.shape)
-            azimuth_hlos[result_id != 0] = azimuth[result_id[result_id != 0] - 1]
+            # azimuth_hlos = zeros(result_id.shape)
+            # azimuth_hlos[result_id != 0] = azimuth[result_id[result_id != 0] - 1]
 
-
+            #Rayleigh Azimuth
+            azimuth = coda.fetch(product, 'rayleigh_geolocation', -1, 'windresult_geolocation/los_azimuth')
+            result_id_ray = coda.fetch(product, 'rayleigh_profile', -1, 'l2b_wind_profiles/wind_result_id_number')
+            result_id_ray = vstack(result_id_ray)
+            azimuth_hlos = zeros(result_id_ray.shape)
+            azimuth_hlos[result_id_ray != 0] = azimuth[result_id_ray[result_id_ray != 0] - 1]
 
             df = pd.DataFrame([],  columns =['column', 'alt', 'lat', 'lon', 'speed','azimuth'])
             for i in range(wind_velocity.shape[0]):
@@ -106,7 +110,6 @@ def readFile(list):
                         'lat': [lats[i,j]],
                         'lon': [lons[i,j]],
                         'speed': [wind_velocity[i,j]],   
-                        'azimuth': azimuth_hlos[i,j],
                         'validity':   [wind_validity[i,j]]    
                     })
                     df = df.append(newDF)
@@ -146,7 +149,7 @@ def readFile(list):
             resultGDF = resultGDF[resultGDF.alt >= 0]
 
 
-            aolus_hlos_angle = resultGDF.azimuth.mean()
+            aolus_hlos_angle = azimuth_hlos.flatten().mean()
 
             #aolus_hlos_angle = math.radians(aolus_hlos_angle)
             print(aolus_hlos_angle)
@@ -186,7 +189,7 @@ def readFile(list):
             for i in range(len(direction)):
                 difference = aolus_hlos_angle-direction[i]
                 rad = math.radians(difference)
-                speed = np.abs(speed_observation[i])*math.cos(rad)
+                speed = speed_observation[i]*math.cos(rad)
                 speed_joyce_hlos.append(speed)  
 
 
@@ -237,11 +240,11 @@ tasks.append(fileList[3::4])
 
 # #start multiprocessing
 
-queue = Queue()
-processes = [Process(target=readFile, args=([list])) for list in tasks]
-for p in processes:
-   p.start()
+#queue = Queue()
+#processes = [Process(target=readFile, args=([list])) for list in tasks]
+#for p in processes:
+#   p.start()#
 
-for p in processes:
-   p.join()
-#readFile(['AE_OPER_ALD_U_N_2B_20210502T171744_20210502T194056_0001.TGZ'])
+#for p in processes:
+#   p.join()
+readFile(['AE_OPER_ALD_U_N_2B_20210209T054235_20210209T071323_0001.TGZ'])

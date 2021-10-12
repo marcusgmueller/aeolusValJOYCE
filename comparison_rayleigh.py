@@ -105,8 +105,7 @@ def readFile(list):
                         'alt': [alt[i,j]],
                         'lat': [lats[i,j]],
                         'lon': [lons[i,j]],
-                        'speed': [wind_velocity[i,j]],   
-                        'azimuth': azimuth_hlos[i,j],
+                        'speed': [wind_velocity[i,j]],
                         'validity':   [wind_validity[i,j]]      
                     })
                     df = df.append(newDF)
@@ -186,7 +185,7 @@ def readFile(list):
             for i in range(len(direction)):
                 difference = aolus_hlos_angle-direction[i]
                 rad = math.radians(difference)
-                speed = np.abs(speed_observation[i])*math.cos(rad)
+                speed = speed_observation[i]*math.cos(rad)
                 speed_joyce_hlos.append(speed)  
 
 
@@ -226,11 +225,12 @@ tasks.append(fileList[2::4])
 tasks.append(fileList[3::4])
 
 
-#start multiprocessing
-queue = Queue()
-processes = [Process(target=readFile, args=([list])) for list in tasks]
-for p in processes:
-    p.start()
+# #start multiprocessing
+# queue = Queue()
+# processes = [Process(target=readFile, args=([list])) for list in tasks]
+# for p in processes:
+#     p.start()
 
-for p in processes:
-    p.join()
+# for p in processes:
+#     p.join()
+readFile(['AE_OPER_ALD_U_N_2B_20210209T054235_20210209T071323_0001.TGZ'])
