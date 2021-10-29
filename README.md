@@ -5,7 +5,13 @@ python3 vert_profile.py
 ```
 
 # Customization
+The image path, data path and used satellite orbit can be changed in the file 'vert_profile.py' in the section:
 ```python
-s = "Python syntax highlighting"
-print s
+################# change here! #################
+
+orbit = '3082'
+path = '/work/marcus_mueller/aeolus/'
+imagePath = "/work/marcus_mueller/aeolus/3082/plots2/"
+
+################################################
 ```
