@@ -1,5 +1,11 @@
-imagePath = "/work/marcus_mueller/aeolus/3082/plots/"
 
+################# change here! #################
+
+orbit = '3082'
+path = '/work/marcus_mueller/aeolus/'
+imagePath = "/work/marcus_mueller/aeolus/3082/plots2/"
+
+################################################
 from plot import *
 import os
 from multiprocessing import Process, Queue
@@ -29,8 +35,7 @@ import math
 import seaborn as sns
 sns.set_theme()
 
-orbit = '3082'
-path = '/work/marcus_mueller/aeolus/'
+
 
 fileList =  os.listdir(path+orbit+"/")
 tasks = []
@@ -110,15 +115,16 @@ def analysis(path,list):
             print(e)
             #exit()
 
-       
-#analysis(path,[fileList[0]])
-
 queue = Queue()
-processes = [Process(target=analysis, args=(path, list)) for list in tasks]
+processes = [Process(target=analysis, args=([path, list])) for list in tasks]
 for p in processes:
     p.start()
+
 for p in processes:
-    p.join()
+    p.join()   
+#analysis('/work/marcus_mueller/aeolus/', ['AE_OPER_ALD_U_N_2B_20201215T054247_20201215T071323_0001.TGZ'])
+
+
 
 
 

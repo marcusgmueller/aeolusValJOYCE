@@ -101,7 +101,7 @@ def getObservationData(measurementDatetime, aolusHlosAngle):
     for i in range(len(direction)):
         difference = aolusHlosAngle-direction[i]
         rad = math.radians(difference)
-        speed = speed_observation[i]*math.cos(rad)
+        speed = np.absolute(speed_observation[i])*math.cos(rad)
         speed_joyce_hlos.append(speed) 
     df = pd.DataFrame(data={
         'speed': speed_joyce_hlos,
@@ -121,14 +121,11 @@ def getICONdata(dt, aolusHlosAngle):
     speed_icon = []
     direction = []
     for i in range(len(u)):
-        speed_icon.append(math.sqrt(u[i]*u[i]+v[i]*v[i]))
-        if v[i]== 0.0:
-            direction.append(math.pi/2)
-        else:
-            direction.append(math.atan(u[i]/v[i]))
+        speed_icon.append(np.sqrt(u[i]**2 + v[i]**2))
+        direction.append(math.degrees(np.arctan2(v[i], u[i])))
     speed_icon_hlos = []
     for i in range(len(direction)):
-        difference = aolusHlosAngle-math.degrees(direction[i])
+        difference = aolusHlosAngle - direction[i]
         rad = math.radians(difference)
         speed = speed_icon[i]*math.cos(rad)
         speed_icon_hlos.append(speed) 
@@ -166,7 +163,7 @@ def readFile(path, list):
             mieGdf = joyceNN(mieGdf)
             aeolus_hlos_angle = rayleighGdf.azimuth.mean()       
             
-            observationDf = getObservationData(measurementDatetime,rayleighGdf,aeolus_hlos_angle )
+            observationDf = getObservationData(measurementDatetime,aeolus_hlos_angle )
             #Plot
             fig = plt.figure(figsize=(20,10))
             plt.title("AEOLUS: Wind-Speed "+measurementDatetime.strftime("%Y-%m-%d"))
@@ -206,8 +203,8 @@ def runSinle(path, filename):
     fileList =  [filename]
     readFile(path, fileList)
 if __name__ == "__main__":
-    #runSinle('/work/marcus_mueller/aeolus/3058/', 'AE_OPER_ALD_U_N_2B_20210502T171744_20210502T194056_0001.TGZ')
-    runParallel('/work/marcus_mueller/aeolus/3058/')
+    runSinle('/work/marcus_mueller/aeolus/3082/', 'AE_OPER_ALD_U_N_2B_20201215T054247_20201215T071323_0001.TGZ')
+    #runParallel('/work/marcus_mueller/aeolus/3058/')
 
 
 
